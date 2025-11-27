@@ -11,21 +11,21 @@
  *   PA: 16个 (PA0-PA15)
  *   PB: 16个 (PB0-PB15, 其中PB3/PB4是JTAG)
  *   PC: 16个 (PC0-PC15)
- *   PD: 2个  (PD0/PD1, 通常用于HSE晶振，也可用作GPIO)
- * 
- * 总需求:
- *   - 电机控制IO: 12个输出 + 6个输入 = 18个
- *   - 霍尔IO: 6个输出
- *   - 热控IO: 8个输出
+ *   PD: 2个  (PD0/PD1, 通常用于HSE晶振；若不使用HSE可作GPIO)
+ *
+ * 总需求(按“霍尔每电机1路输入”修正版):
+ *   - 电机控制IO: 12个输出 + 6个霍尔输入 = 18个
+ *   - 霍尔输出: 0（硬件确认不用）
+ *   - 热控输出: 8个输出
  *   - ADC: 12路
  *   - PWM: 2路
- *   - 通信: RS485或CAN
- * 
- * 引脚分配策略:
+ *   - 通信: RS485或CAN 二选一
+ *
+ * 引脚分配策略（可先按此写软件，后续硬件定稿改宏）:
  *   PA0-PA7:  ADC + PWM + 通信
- *   PB口:     电机控制 + 热控制
- *   PC口:     霍尔 + ADC + 电机控制
- *   PD2:      热控制补充引脚（不使用HSE时可用）
+ *   PB口:     电机控制 + 热控制 + 预留
+ *   PC口:     霍尔输入 + ADC + 电机控制 + 热控
+ *   PD2:      预留热控补充脚（仅在“不用外部HSE”且封装实际引出时可用）
  * ================================================================ */
 
 
@@ -35,7 +35,6 @@
 #define MOTOR_NUM    6
 #define FAN_NUM      2
 #define HEAT_NUM     8
-#define HALL_OUT_NUM 6
 
 typedef enum { MOTOR1=0, MOTOR2, MOTOR3, MOTOR4, MOTOR5, MOTOR6 } motor_id_t;
 typedef enum { FAN1=0, FAN2 } fan_id_t;
@@ -43,7 +42,7 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 
 
 /* ================================================================
- *                  通信接口选择
+ *                  通信接口选择（二选一）
  * ================================================================ */
 #define USE_RS485_COMM
 // #define USE_CAN_COMM
@@ -77,11 +76,10 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 /* ================================================================
  *              模块1: 电机控制 (6个电机)
  * ================================================================
- * 引脚分配（修正版）:
+ * 引脚分配（霍尔仅输入，无霍尔输出）:
  *   - 电机正转: PB12-PB15, PC10-PC11 (6路)
  *   - 电机反转: PC12-PC15, PA11-PA12 (6路)
- *   - 霍尔输入: PA15, PC4-PC8 (6路) ✓ 保持不变
- *   - 霍尔输出: PB2-PB7 (6路) ✓ 保持不变，PB3/PB4需禁JTAG
+ *   - 霍尔输入: PA15, PC4-PC8 (6路)
  *   - 电机电流: PA0-PA5 ADC (6路)
  * ================================================================ */
 
@@ -94,13 +92,9 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR1_REV_PORT         GPIOC
 #define MOTOR1_REV_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
 
-#define MOTOR1_HALL_IN_PIN      GPIO_PIN_15   // ✓ 继续用PA15
+#define MOTOR1_HALL_IN_PIN      GPIO_PIN_15
 #define MOTOR1_HALL_IN_PORT     GPIOA
 #define MOTOR1_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
-
-#define MOTOR1_HALL_OUT_PIN     GPIO_PIN_2
-#define MOTOR1_HALL_OUT_PORT    GPIOB
-#define MOTOR1_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
 
 #define MOTOR1_CURRENT_ADC_CHANNEL  ADC_CHANNEL_0   // PA0
 
@@ -118,10 +112,6 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR2_HALL_IN_PORT     GPIOC
 #define MOTOR2_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
 
-#define MOTOR2_HALL_OUT_PIN     GPIO_PIN_3    // ⚠️ 需禁JTAG
-#define MOTOR2_HALL_OUT_PORT    GPIOB
-#define MOTOR2_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
-
 #define MOTOR2_CURRENT_ADC_CHANNEL  ADC_CHANNEL_1   // PA1
 
 
@@ -137,10 +127,6 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR3_HALL_IN_PIN      GPIO_PIN_5
 #define MOTOR3_HALL_IN_PORT     GPIOC
 #define MOTOR3_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
-
-#define MOTOR3_HALL_OUT_PIN     GPIO_PIN_4    // ⚠️ 需禁JTAG
-#define MOTOR3_HALL_OUT_PORT    GPIOB
-#define MOTOR3_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
 
 #define MOTOR3_CURRENT_ADC_CHANNEL  ADC_CHANNEL_2   // PA2
 
@@ -158,10 +144,6 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR4_HALL_IN_PORT     GPIOC
 #define MOTOR4_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
 
-#define MOTOR4_HALL_OUT_PIN     GPIO_PIN_5
-#define MOTOR4_HALL_OUT_PORT    GPIOB
-#define MOTOR4_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
-
 #define MOTOR4_CURRENT_ADC_CHANNEL  ADC_CHANNEL_3   // PA3
 
 
@@ -178,10 +160,6 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR5_HALL_IN_PORT     GPIOC
 #define MOTOR5_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
 
-#define MOTOR5_HALL_OUT_PIN     GPIO_PIN_6
-#define MOTOR5_HALL_OUT_PORT    GPIOB
-#define MOTOR5_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
-
 #define MOTOR5_CURRENT_ADC_CHANNEL  ADC_CHANNEL_4   // PA4
 
 
@@ -197,10 +175,6 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define MOTOR6_HALL_IN_PIN      GPIO_PIN_8
 #define MOTOR6_HALL_IN_PORT     GPIOC
 #define MOTOR6_HALL_IN_CLK_ENABLE() __HAL_RCC_GPIOC_CLK_ENABLE()
-
-#define MOTOR6_HALL_OUT_PIN     GPIO_PIN_7
-#define MOTOR6_HALL_OUT_PORT    GPIOB
-#define MOTOR6_HALL_OUT_CLK_ENABLE() __HAL_RCC_GPIOB_CLK_ENABLE()
 
 #define MOTOR6_CURRENT_ADC_CHANNEL  ADC_CHANNEL_5   // PA5
 
@@ -237,8 +211,9 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 /* ================================================================
  *              模块3: 热控制 (8路IO + 4路ADC)
  * ================================================================
- * 热控IO分配（修正版）:
+ * 热控IO分配:
  *   PB8-PB11 (4路) + PC9 (1路) + PA13-PA14 (2路) + PD2 (1路) = 8路
+ * 注：PA13/PA14 为 SWD 脚，除非 IO 不够，否则后续建议挪走
  * ================================================================ */
 
 /* ---------------- 热控输出 IO (8路) ---------------- */
@@ -270,7 +245,7 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 #define HEAT_CTRL7_PORT         GPIOA
 #define HEAT_CTRL7_CLK_ENABLE() __HAL_RCC_GPIOA_CLK_ENABLE()
 
-#define HEAT_CTRL8_PIN          GPIO_PIN_2    // ✓ 改用PD2（不使用HSE时可用）
+#define HEAT_CTRL8_PIN          GPIO_PIN_2    // 仅在不用外部HSE且硬件引出时可用
 #define HEAT_CTRL8_PORT         GPIOD
 #define HEAT_CTRL8_CLK_ENABLE() __HAL_RCC_GPIOD_CLK_ENABLE()
 
@@ -304,7 +279,7 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 
 
 /* ================================================================
- *             完整引脚分配表（修正版，无冲突）
+ *             完整引脚分配表（当前假设，无霍尔输出）
  * ================================================================
  * PA0-PA5:   电机电流ADC (6路) ✓
  * PA6-PA7:   风扇PWM (2路) ✓
@@ -312,25 +287,25 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
  * PA11-PA12: 电机5/6反转 (2路) ✓
  * PA13-PA14: 热控6-7 (2路) ⚠️ 需禁SWD
  * PA15:      电机1霍尔输入 (1路) ✓
- * 
+ *
  * PB0-PB1:   NTC温度ADC (2路) ✓
- * PB2-PB7:   霍尔输出1-6 (6路) ⚠️ PB3/PB4需禁JTAG
  * PB8-PB11:  热控1-4 (4路) ✓
  * PB12-PB15: 电机1-4正转 (4路) ✓
- * 
+ * PB2-PB7:   预留GPIO（原霍尔输出位）✓
+ *
  * PC0-PC1:   热控电流ADC (2路) ✓
  * PC2-PC3:   风扇电流ADC (2路) ✓
- * PC4-PC8:   霍尔输入2-6 (5路) ✓
+ * PC4-PC8:   电机2-6霍尔输入 (5路) ✓
  * PC9:       热控5 (1路) ✓
  * PC10-PC11: 电机5-6正转 (2路) ✓
  * PC12-PC15: 电机1-4反转 (4路) ✓
- * 
- * PD2:       热控8 (1路) ✓ (不使用外部晶振时可用)
- * 
+ *
+ * PD2:       热控8 (1路) ✓（仅在不用外部HSE且硬件引出时）
+ *
  * ⚠️ 注意事项:
- *   1. PB3/PB4需在CubeMX中禁用JTAG，保留SWD
- *   2. PA13/PA14需在CubeMX中禁用SWD调试（程序下载后不可再调试）
- *   3. PD2仅在不使用外部HSE晶振时可用
+ *   1. PB3/PB4 若后续使用，需在CubeMX中禁用JTAG，保留SWD
+ *   2. PA13/PA14 若用作GPIO，需要禁SWD（下载后无法再调试）
+ *   3. PD0/PD1 若使用外部HSE晶振则不可用作GPIO
  *   4. 如使用CAN，需remap到PB8/PB9（会占用热控1-2）
  * ================================================================ */
 

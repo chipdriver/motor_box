@@ -18,7 +18,8 @@
             "compilerPath": "你的ARM-GCC路径/arm-none-eabi-gcc.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "intelliSenseMode": "gcc-arm"
+            "intelliSenseMode": "gcc-arm",
+            "compileCommands": "${workspaceFolder}/build/Debug/compile_commands.json"
         }
     ],
     "version": 4
