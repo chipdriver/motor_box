@@ -178,6 +178,14 @@ typedef enum { HEAT1=0, HEAT2, HEAT3, HEAT4, HEAT5, HEAT6, HEAT7, HEAT8 } heat_i
 
 #define MOTOR6_CURRENT_ADC_CHANNEL  ADC_CHANNEL_5   // PA5
 
+/* ============ 霍尔公共使能/供电切换 IO（第7路） ============ */
+/* 用 PD0（不使用HSE晶振时可用），如果用HSE就换 PD1 或别的空脚 */
+#define HALL_EN_PIN          GPIO_PIN_0     // PD0
+#define HALL_EN_PORT         GPIOD
+#define HALL_EN_CLK_ENABLE() __HAL_RCC_GPIOD_CLK_ENABLE()
+
+#define HALL_EN_ACTIVE_LEVEL GPIO_PIN_SET  // 高有效；低有效就改 RESET
+
 
 /* ================================================================
  *              模块2: 通风控制 (2路PWM + 2路ADC)
