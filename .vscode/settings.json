@@ -14,6 +14,7 @@
     ],
     "files.associations": {
         "heat_out_drv.h": "c",
-        "hardware_config.h": "c"
+        "hardware_config.h": "c",
+        "thermistor_temperature_driver.h": "c"
     }
 }
