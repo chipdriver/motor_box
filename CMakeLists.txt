@@ -45,6 +45,7 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Motor/Src/motor_drv.c
+    Heat/Src/heat_out_drv.c
     # Add user sources here
 )
 
@@ -52,6 +53,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     HardwareConfig/Inc
     Motor/Inc
+    Heat/Inc
     # Add user defined include paths
 )
 
